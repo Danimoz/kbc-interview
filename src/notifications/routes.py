@@ -34,7 +34,7 @@ async def get_notification_status(job_id: str, db: AsyncSession = Depends(get_db
   print(job_id)
   notification = await get_notification_by_job_id(db, job_id)
   if not notification:
-    raise HTTPException(status_code=404, detail="Notification not found")
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found")
   
   return NotificationResponse(
     job_id=notification.job_id,
@@ -48,6 +48,8 @@ async def get_notification_status(job_id: str, db: AsyncSession = Depends(get_db
 @router.get("/notifications/user/{user_id}", response_model=UserNotifications)
 async def get_user_notifications(user_id: str, db: AsyncSession = Depends(get_db)):
   notifications = await get_notifications_by_user(db, user_id)
+  if not notifications:
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No notifications found")
   
   return UserNotifications(
     notifications=[

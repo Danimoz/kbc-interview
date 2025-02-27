@@ -14,6 +14,8 @@ class Settings(BaseSettings):
   CELERY_BROKER_URL: str
   CELERY_RESULT_BACKEND: str
   REDIS_URL: str
+  RABBITMQ_DEFAULT_USER: str
+  RABBITMQ_DEFAULT_PASS: str
 
   model_config = SettingsConfigDict(env_file='.env')
 

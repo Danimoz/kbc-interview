@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   web:
     build: .
@@ -13,16 +12,27 @@ services:
       - rabbitmq
     env_file:
       - .env
+    networks:
+      - my-network
+    restart: unless-stopped
 
   worker:
     build: .
+    volumes:
+      - .:/src
     container_name: fastapi_worker
     depends_on:
-      - db
-      - redis
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
     env_file:
       - .env
+    networks:
+      - my-network
+    restart: unless-stopped
     command: ["celery", "-A", "src.core.worker", "worker", "--loglevel=info"]
 
   rabbitmq:
@@ -35,16 +45,35 @@ services:
       - .env
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - my-network
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
 
   db:
     image: postgres:15-alpine
     container_name: postgres_db
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - my-network
+    ports:
+      - "5432:5432"
     env_file:
       - .env
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - DATABASE_URL=${DATABASE_URL}
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
@@ -53,11 +82,22 @@ services:
       - 6379
     volumes:
       - redis_data:/data
+    networks:
+      - my-network
     env_file:
       - .env
+    environment:
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_URL=${REDIS_URL}
+    restart: unless-stopped
     command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
 
 volumes:
   postgres_data:
   redis_data:
   rabbitmq_data:
+
+networks:
+  my-network:
+    driver: bridge
