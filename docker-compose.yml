@@ -1,0 +1,61 @@
+version: '3.8'
+services:
+  web:
+    build: .
+    container_name: fastapi_app
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/src
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+    env_file:
+      - .env
+
+  worker:
+    build: .
+    container_name: fastapi_worker
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+    env_file:
+      - .env
+    command: ["celery", "-A", "src.core.worker", "worker", "--loglevel=info"]
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    env_file:
+      - .env
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  db:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis_cache
+    expose:
+      - 6379
+    volumes:
+      - redis_data:/data
+    env_file:
+      - .env
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
