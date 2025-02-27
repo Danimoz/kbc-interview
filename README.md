@@ -95,10 +95,6 @@ Fetches the last 10 notifications for a user.
 }
 ```
 
-## Rate Limiting
-
-The system implements a sliding window rate limit of 10 requests per minute per user. This prevents abuse while allowing legitimate traffic to flow through.
-
 ## Installation and Setup
 
 ### Prerequisites
@@ -121,10 +117,10 @@ cd rate-limited-notification-system
 docker-compose up -d
 ```
 
-3. Initialize the database:
+3. Run the migraions:
 
 ```bash
-docker-compose exec api python init.py
+docker compose run --rm web alembic upgrade head
 ```
 
 4. The API will be available at: http://localhost:8000
